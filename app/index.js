@@ -23,15 +23,15 @@ var availableSuites = [];
 var availableTestCases = [];
 var availableStatuses = [];
 var availableProjects = [];
+
+dotenv.config();
+const stasusesButtonOptions = [];
+
 var testrail = new Testrail({
   host: process.env.TEST_RAILS_HOST,
   user: process.env.TEST_RAILS_USER,
   password: process.env.TEST_RAILS_PASS
 });
-
-dotenv.config();
-const stasusesButtonOptions = [];
-
 //token to connect to the bot
 const token = process.env.BOT_TOKEN;
 if (typeof token !== "string") {
@@ -86,23 +86,19 @@ const messagesHandle = bot.subscribeToMessages().pipe(
       await testrail
         .getProjects()
         .then(function(result) {
-          console.log(result.body);
           sendTextMessage("Available Projects", projectsToAction(result.body));
         })
         .catch(function(error) {
           console.log(error.message);
         });
     }
-    console.log("Bot has been connected");
   })
 );
 
 //creating action handle
 const actionsHandle = bot.subscribeToActions().pipe(
   flatMap(async event => {
-    console.log("event", event);
     if (event.id === "projects") {
-      console.log("EVENT", event);
       const projectId = _.find(availableProjects, ["name", event.value]);
       currentProjectId = projectId.id;
       getSuites();
@@ -115,7 +111,7 @@ const actionsHandle = bot.subscribeToActions().pipe(
           getTestCases(result);
         })
         .catch(function(error) {
-          console.log("error", error.message);
+          console.log(error.message);
         });
     } else {
       const testId = availableTestCases[currentTestCaseCounter - 1].id;
@@ -137,14 +133,9 @@ const actionsHandle = bot.subscribeToActions().pipe(
       if (currentTestCaseCounter < availableTestCases.length) {
         addResult(availableTestCases[currentTestCaseCounter]);
       } else {
-        testrail
-          .closeRun(currentProjectId)
-          .then(function(result) {
-            console.log("Run Closed");
-          })
-          .catch(function(error) {
-            console.log(error.message);
-          });
+        testrail.closeRun(currentProjectId).catch(function(error) {
+          console.log(error.message);
+        });
       }
     }
   })
@@ -172,22 +163,18 @@ function getTestCases(result) {
     .then(result => {
       availableTestCases = result.body;
       if (availableTestCases.length !== 0) addResult(availableTestCases[0]);
-      console.log("availableTestCases", availableTestCases);
     })
     .catch(function(error) {
-      console.log("error", error.message);
+      console.log(error.message);
     });
 }
 
 function addResult(test) {
-  console.log(test);
-  console.log("reached 2");
   sendTextMessage(
     `Select result to add for ${test.title}`,
     stasusesButtonOptions
   );
   currentTestCaseCounter += 1;
-  // sendTextMessage("Step Added");
 }
 
 async function getAvailableStatuses() {
@@ -195,7 +182,6 @@ async function getAvailableStatuses() {
     .getStatuses()
     .then(result => {
       availableStatuses = result.body;
-      console.log("statuses", result.body);
     })
     .catch(function(error) {
       console.log("error", error.message);
@@ -271,7 +257,6 @@ function messageformat(peers, texts) {
 }
 
 function sendTextToBot(bot, message, actionGroup) {
-  console.log(actionGroup);
   var actionGroups = actionGroup || null;
   bot
     .sendText(
@@ -322,7 +307,6 @@ function projectsToAction(projects) {
 
 function getSuites() {
   const project = _.find(availableProjects, ["id", currentProjectId]);
-  console.log("PROJECT ID", availableProjects, project);
   testrail
     .getSuites(currentProjectId)
     .then(function(result) {
@@ -332,6 +316,6 @@ function getSuites() {
       );
     })
     .catch(function(error) {
-      console.log("error", error.message);
+      console.log(error.message);
     });
 }
