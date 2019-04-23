@@ -1,1 +1,1 @@
-# testrails_jira_bot
+# Testrails Dialog Bot
